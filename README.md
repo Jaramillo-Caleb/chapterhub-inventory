@@ -1,22 +1,18 @@
-# 📚 ChapterHub Inventory
+# ChapterHub Inventory
 
-A full-stack **Express + PostgreSQL (Neon)** bookstore inventory application featuring **CRUD**, **image uploads**, **search**, **sorting**, **filtering**, and clean server-rendered views using **EJS + Tailwind CSS**.
+A full-stack **Express + PostgreSQL (Supabase)** bookstore inventory application featuring **CRUD**, **image uploads**, **search**, **sorting**, **filtering**, and clean server-rendered views using **EJS + Tailwind CSS**.
 
-Built as part of **The Odin Project**, but structured like a production-grade MVC application.
-
----
-
-## 🚀 Live Demo
-
-`Render`: [https://chapterhub-inventory.onrender.com/](https://chapterhub-inventory.onrender.com/)
+Audited and extended to an enterprise **10-table relational model** hosted on **Supabase** with business analytics embedded from **Google Looker Studio**.
 
 ---
 
-## 🔖 Tech Stack & Tools
+## Tech Stack & Tools
 
 ![Node.js](https://img.shields.io/badge/Node.js-339933?logo=node.js&logoColor=white)
 ![Express](https://img.shields.io/badge/Express.js-000000?logo=express&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?logo=supabase&logoColor=white)
+![Looker Studio](https://img.shields.io/badge/Looker_Studio-4285F4?logo=google&logoColor=white)
 ![Neon](https://img.shields.io/badge/NeonDB-00E599?logo=postgresql&logoColor=white)
 ![EJS](https://img.shields.io/badge/EJS-8BC34A?logo=ejs&logoColor=white)
 ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-38B2AC?logo=tailwind-css&logoColor=white)
@@ -26,11 +22,14 @@ Built as part of **The Odin Project**, but structured like a production-grade MV
 
 ---
 
-## 📸 Screenshots
+## Screenshots
 
 ### Home Page
 
 ![home](./public/img/sc_first.png)
+
+### Analytics Dashboard
+![home](./public/img/sc_first-analytics.png)
 
 ### Books Page
 
@@ -52,9 +51,9 @@ Built as part of **The Odin Project**, but structured like a production-grade MV
 
 ---
 
-# 🧰 Features
+# Features
 
-### 📖 Books Management
+### Books Management
 
 - Create, edit, delete books
 - Upload cover images (Multer)
@@ -63,14 +62,14 @@ Built as part of **The Odin Project**, but structured like a production-grade MV
 - Filename hashing using crypto
 - Full validation with express-validator
 
-### 📂 Genres Management
+### Genres Management
 
 - Create, edit, delete genres
 - Name + description fields
 - Prevent duplicates using DB constraints
 - Genre dropdown in book forms
 
-### 🔍 Search, Filter & Sort
+### Search, Filter & Sort
 
 - Search books by title
 - Filter books by **one or multiple genres**
@@ -79,18 +78,14 @@ Built as part of **The Odin Project**, but structured like a production-grade MV
   - Year (Oldest / Newest)
   - Price (Low → High / High → Low)
 
-### 📦 Database Layer
+### Database Layer
 
-- PostgreSQL hosted on **Neon**
+- PostgreSQL hosted on **Supabase** (Session Pooler IPv4)
+- Normalized 10-table schema supporting sales, customers, orders, and audit logs
+- Embedded interactive BI Dashboard from **Google Looker Studio**
 - Parameterized SQL queries (SQL injection safe)
-- Modular queries for books & genres
-- Seed script includes:
-  - Schema generation
-  - Sample genres & books
-  - `--reset` mode
-  - Index creation for genres
 
-### 🎨 UI (Tailwind + EJS)
+### UI (Tailwind + EJS)
 
 - Tailwind CSS v4
 - Modern, minimal, responsive UI
@@ -98,32 +93,7 @@ Built as part of **The Odin Project**, but structured like a production-grade MV
 
 ---
 
-# 🏗️ Tech Stack
-
-### Backend
-
-- Node.js
-- Express 5
-- Express Validator
-- Multer (image uploads)
-- PostgreSQL (Neon)
-
-### Frontend
-
-- EJS
-- Tailwind CSS 4
-- Vanilla JavaScript
-
-### Dev Tools
-
-- Nodemon
-- Concurrently
-- pnpm
-- dotenv
-
----
-
-# 📁 Folder Structure
+# Folder Structure
 
 ```
 chapterhub-inventory/
@@ -167,47 +137,120 @@ chapterhub-inventory/
 
 ---
 
-# 🗄️ Database Schema
+# Database Schema
 
-### **genres**
+The original schema (2 tables: `books`, `genres`) was audited and extended to a **10-table relational model** with explicit primary and foreign keys, referential integrity constraints, and indexes.
 
-| Column      | Type          | Notes             |
-| ----------- | ------------- | ----------------- |
-| id          | identity (PK) | auto-generated    |
-| name        | varchar(100)  | unique, required  |
-| description | text          | optional          |
-| created_at  | timestamptz   | defaults to NOW() |
+### Diagrama Entidad-Relación (DER)
 
-### **books**
+```mermaid
+erDiagram
+    cities ||--o{ customers : "ubica"
+    customers ||--o{ orders : "realiza"
+    order_statuses ||--o{ orders : "describe"
+    profiles ||--o{ orders : "registra"
+    profiles ||--o{ audit_logs : "genera"
+    genres ||--o{ books : "clasifica"
+    books ||--o{ order_items : "se vende en"
+    orders ||--o{ order_items : "contiene"
+    orders ||--o{ payments : "se paga con"
 
-| Column                | Type                | Notes                 |
-| --------------------- | ------------------- | --------------------- |
-| id                    | identity (PK)       | auto-generated        |
-| title                 | varchar(255)        | required              |
-| author                | varchar(255)        | optional              |
-| description           | text                | optional              |
-| year                  | integer             | optional              |
-| genre_id              | integer (FK)        | references genres(id) |
-| image_url             | text                | uploaded path         |
-| price                 | numeric(10,2)       | default 0             |
-| quantity              | int                 | default 0             |
-| created_at            | timestamptz         | defaults to NOW()     |
-| UNIQUE(title, author) | prevents duplicates |
+    genres {
+        int id PK
+        varchar name UK
+        text description
+        timestamptz created_at
+    }
 
-📌 Index:
+    books {
+        int id PK
+        varchar title
+        varchar author
+        text description
+        int year
+        int genre_id FK
+        text image_url
+        numeric price
+        int quantity
+        timestamptz created_at
+    }
 
-```sql
-CREATE INDEX idx_books_genre_id ON books(genre_id);
+    cities {
+        int id PK
+        varchar name
+        varchar department
+    }
+
+    customers {
+        int id PK
+        varchar full_name
+        varchar email UK
+        varchar phone
+        int city_id FK
+        timestamptz created_at
+    }
+
+    order_statuses {
+        int id PK
+        varchar name UK
+    }
+
+    profiles {
+        uuid id PK
+        varchar full_name
+        varchar email UK
+        varchar role
+        timestamptz created_at
+    }
+
+    orders {
+        int id PK
+        int customer_id FK
+        int status_id FK
+        uuid created_by FK
+        timestamptz order_date
+        numeric total
+    }
+
+    order_items {
+        int id PK
+        int order_id FK
+        int book_id FK
+        int quantity
+        numeric unit_price
+    }
+
+    payments {
+        int id PK
+        int order_id FK
+        numeric amount
+        varchar method
+        timestamptz paid_at
+    }
+
+    audit_logs {
+        int id PK
+        uuid profile_id FK
+        varchar table_name
+        varchar action
+        int record_id
+        jsonb details
+        timestamptz created_at
+    }
 ```
 
+# Scripts SQL de Creación y Población
+Los scripts oficiales para inicializar el esquema completo y los datos asimétricos se encuentran en la raíz del repositorio:
+- Script de Creación de Tablas, Llaves e Índices: 01_schema.sql
+- Script de Población de Datos Iniciales (Seed): 02_seed.sql
 ---
 
-# ⚙️ Setup & Installation
+# Setup & Installation
 
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/devxsameer/chapterhub-inventory.git
+git clone https://github.com/Jaramillo-Caleb/chapterhub-inventory.git
 cd chapterhub-inventory
 ```
 
@@ -220,8 +263,8 @@ pnpm install
 ### 3. Create `.env`
 
 ```
-DATABASE_URL=your_neon_connection_string
-PORT=6969
+DATABASE_URL=conexion_adjunta_en_el_classroom
+PORT=3000
 ```
 
 ### 4. Seed the database
@@ -240,7 +283,7 @@ pnpm seed
 
 ---
 
-# 🧪 Running the Project
+# Running the Project
 
 ### Development mode (server + Tailwind watcher)
 
@@ -263,12 +306,12 @@ pnpm start
 Server runs at:
 
 ```
-http://localhost:6969
+http://localhost:3000
 ```
 
 ---
 
-# 🖼️ Image Upload System
+# Image Upload System
 
 - Uploads stored in: `public/uploads/`
 - Uses Multer disk storage
@@ -278,13 +321,19 @@ http://localhost:6969
 
 ---
 
-# 👨‍💻 Author
+# Author
 
 **Sameer Ali**  
 Full-stack developer & Odin Project learner.
 
 ---
 
-# 📝 License
+# License
 
 **MIT License** — free to modify & share.
+
+---
+
+# Citations
+
+https://github.com/devxsameer/chapterhub-inventory
